@@ -1,0 +1,24 @@
+name: Extract Windows and macOS fonts
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  extract-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Extract fonts
+        run: |
+          mkdir fonts
+          find /System/Library/Fonts -type f -exec cp {} fonts/ \;
+          zip -r fonts-macos.zip fonts/
+      - name: Upload fonts artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: macOS fonts
+          path: fonts
+#      - name: Release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: fonts-macos.zip
+#          draft: true
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
