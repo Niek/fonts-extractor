@@ -37,11 +37,11 @@ jobs:
       run: |
         7z a fonts-mac.zip fonts-mac/*
         7z a fonts-win.zip fonts-win/*
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            fonts-macos.zip
-            fonts-win.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          fonts-macos.zip
+          fonts-win.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
