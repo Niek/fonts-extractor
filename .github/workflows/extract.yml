@@ -18,6 +18,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Extract fonts
+        shell: bash
         run: |
           mkdir fonts
           find C:\Windows\Fonts -type f -exec cp {} fonts/ \;
