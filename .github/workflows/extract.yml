@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           mkdir fonts
-          find C:\Windows\Fonts -type f -exec cp {} fonts/ \;
+          find C:\\Windows\\Fonts -type f -exec cp {} fonts/ \;
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v2
         with:
