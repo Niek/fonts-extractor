@@ -12,7 +12,7 @@ jobs:
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v2
         with:
-          name: macOS fonts
+          name: fonts-mac
           path: fonts/
   extract-windows:
     runs-on: windows-latest
@@ -21,11 +21,11 @@ jobs:
         shell: bash
         run: |
           mkdir fonts
-          find C:\\Windows\\Fonts -type f -exec cp {} fonts/ \;
+          find C:\\Windows\\Fonts -iname '*.ttf' -exec cp {} fonts/ \;
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v2
         with:
-          name: Windows fonts
+          name: fonts-win
           path: fonts/
   upload:
     runs-on: ubuntu-latest
@@ -33,12 +33,15 @@ jobs:
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v2
-    - name: Display structure of downloaded files
-      run: ls -R
-#      - name: Release
-#        uses: softprops/action-gh-release@v1
-#        with:
-#          files: fonts-macos.zip
-#          draft: true
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Compress all fonts
+      run: |
+        7z a fonts-mac.zip fonts-mac/*
+        7z a fonts-win.zip fonts-win/*
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            fonts-macos.zip
+            fonts-win.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
