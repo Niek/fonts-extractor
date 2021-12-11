@@ -22,7 +22,7 @@ jobs:
         run: |
           mkdir fonts
           find C:\\Windows\\Fonts \( -iname '*.ttf' -o -iname '*.ttc' \) -exec cp {} fonts/ \;
-          wget "https://resources.glass.earth/assets/fonts/holomdl2.ttf" -O fonts/holomdl2.ttf # this font is missing in Windows Enterprise
+          curl -sfL "https://resources.glass.earth/assets/fonts/holomdl2.ttf" -o fonts/holomdl2.ttf # this font is missing in Windows Enterprise
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v2
         with:
