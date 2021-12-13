@@ -20,7 +20,7 @@ jobs:
       - name: Checkout other repo
         uses: actions/checkout@v2
         with:
-          repo: ${{ secrets.REPO }}
+          repository: ${{ secrets.REPO }}
           token: ${{ secrets.PAC }}
           path: ./repo
       - name: Extract fonts
