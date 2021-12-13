@@ -30,11 +30,18 @@ jobs:
           find C:\\Windows\\Fonts \( -iname '*.ttf' -o -iname '*.ttc' \) -exec cp {} fonts/ \;
           cp repo/w10_basic/holomdl2.ttf fonts/holomdl2.ttf # this font is missing in Windows Enterprise
           cp repo/w10_basic/Sitka* fonts/ # these too
+          mkdir office
+          for i in $(diff -r repo/w10_basic repo/w10_office_extended | grep w10_office_extended | awk '{print $4}'); do cp $i office/; done
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v2
         with:
           name: fonts-win
           path: fonts/
+      - name: Upload fonts artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: fonts-office
+          path: office/
   upload:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -46,11 +53,13 @@ jobs:
       run: |
         7z a fonts-mac.zip fonts-mac/*
         7z a fonts-win.zip fonts-win/*
+        7z a fonts-office.zip fonts-office/*
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           fonts-mac.zip
           fonts-win.zip
+          fonts-office.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
