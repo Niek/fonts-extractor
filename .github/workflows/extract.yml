@@ -17,12 +17,19 @@ jobs:
   extract-windows:
     runs-on: windows-2022 # see: https://github.com/actions/virtual-environments#available-environments
     steps:
+      - name: Checkout other repo
+        uses: actions/checkout@v2
+        with:
+          repo: ${{ secrets.REPO }}
+          token: ${{ secrets.PAC }}
+          path: ./repo
       - name: Extract fonts
         shell: bash
         run: |
           mkdir fonts
           find C:\\Windows\\Fonts \( -iname '*.ttf' -o -iname '*.ttc' \) -exec cp {} fonts/ \;
-          curl -sfL "https://resources.glass.earth/assets/fonts/holomdl2.ttf" -o fonts/holomdl2.ttf # this font is missing in Windows Enterprise
+          cp repo/w10_basic/holomdl2.ttf fonts/holomdl2.ttf # this font is missing in Windows Enterprise
+          cp repo/w10_basic/Sitka* fonts/ # these too
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v2
         with:
