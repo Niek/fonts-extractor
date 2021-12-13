@@ -31,7 +31,7 @@ jobs:
           cp repo/w10_basic/holomdl2.ttf fonts/holomdl2.ttf # this font is missing in Windows Enterprise
           cp repo/w10_basic/Sitka* fonts/ # these too
           mkdir office
-          for i in $(diff -r repo/w10_basic repo/w10_office_extended | grep w10_office_extended | awk '{print $4}'); do cp $i office/; done
+          for i in $(diff -r repo/w10_basic repo/w10_office_extended | grep w10_office_extended | awk '{print $4}'); do cp repo/w10_office_extended/$i office/; done
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v2
         with:
