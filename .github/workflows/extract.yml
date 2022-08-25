@@ -3,7 +3,7 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   extract-macos:
-    runs-on: macos-11 # see: https://github.com/actions/virtual-environments#available-environments
+    runs-on: macos-12 # see: https://github.com/actions/virtual-environments#available-environments
     steps:
       - name: Extract fonts
         run: |
