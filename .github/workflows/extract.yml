@@ -57,7 +57,7 @@ jobs:
     needs: [extract-macos, extract-windows]
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
     - name: Compress all fonts
       run: |
         7z a fonts-mac.zip fonts-mac/*
