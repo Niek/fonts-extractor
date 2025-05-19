@@ -33,7 +33,7 @@ jobs:
           name: fonts-android
           path: android/
   extract-windows:
-    runs-on: windows-2025 # see: https://github.com/actions/runner-images?tab=readme-ov-file#available-images
+    runs-on: windows-2022 # see: https://github.com/actions/runner-images?tab=readme-ov-file#available-images
     steps:
       - name: Checkout other repo
         uses: actions/checkout@v4
