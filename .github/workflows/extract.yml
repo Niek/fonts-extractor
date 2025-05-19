@@ -24,6 +24,9 @@ jobs:
           # Download noto-emoji from https://github.com/googlefonts/noto-emoji
           curl -sLo android/NotoColorEmoji.ttf https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf
 
+          # Download droid-sans-mono from https://github.com/googlefonts/googlefontsdirectory-old
+          curl -sLo android/DroidSansMono.ttf https://github.com/googlefonts/googlefontsdirectory-old/raw/refs/heads/main/apache/droidsansmono/DroidSansMono.ttf
+
           # Download roboto-3-classic from https://github.com/googlefonts/roboto-3-classic
           curl -sLo roboto.zip $(curl -s https://api.github.com/repos/googlefonts/roboto-3-classic/releases/latest | jq -r '.assets[0].browser_download_url')
           unzip -j -q roboto.zip "android/static/*" -d android
