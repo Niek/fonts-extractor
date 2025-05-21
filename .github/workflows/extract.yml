@@ -9,7 +9,7 @@ jobs:
         run: |
           mkdir fonts
           find /System/Library/Fonts -type f -exec cp {} fonts/ \;
-          find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/ -type f -exec cp {} fonts/ \;
+          # find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/ -type f -exec cp {} fonts/ \; # Skip for now
           find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Fonts/ApplicationSupport/ -type f -exec cp {} fonts/ \;
           find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Fonts/Subsets/ -type f -exec cp {} fonts/ \;
       - name: Upload fonts artifact
