@@ -12,7 +12,7 @@ jobs:
           # find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/ -type f -exec cp {} fonts/ \; # Skip for now
           find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Fonts/ApplicationSupport/ -type f -exec cp {} fonts/ \;
           find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Fonts/Subsets/ -type f -exec cp {} fonts/ \;
-          for i in PingFangHK-Light.otf PingFangHK-Medium.otf PingFangHK-Regular.otf PingFangHK-Semibold.otf PingFangHK-Thin.otf PingFangHK-Ultralight.otf; do curl -sLo fonts/$i https://github.com/vzxxbacq/PingFang_Font_For_Linux/raw/refs/heads/master/HK/$i; done
+          for i in PingFangHK-Light.otf PingFangHK-Medium.otf PingFangHK-Regular.otf PingFangHK-Semibold.otf PingFangHK-Thin.otf PingFangHK-Ultralight.otf; do curl -sLo fonts/$i https://github.com/ZWolken/PingFang/raw/refs/heads/main/$i; done
       - name: Upload fonts artifact
         uses: actions/upload-artifact@v4
         with:
