@@ -1,0 +1,3 @@
+fonttools==4.66.1
+freetype-py==2.5.1
+uharfbuzz==0.56.2
