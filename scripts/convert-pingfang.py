@@ -7,6 +7,7 @@ import sys
 import tempfile
 
 from fontTools.fontBuilder import FontBuilder
+from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.misc.roundTools import otRound
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTCollection, TTFont, newTable
@@ -46,7 +47,7 @@ def convert(output):
                         assert font.getTableData(tag) == template.getTableData(tag), (family, tag)
                     assert getattr(font["GSUB"].table, "FeatureVariations", None) is None
                 factor = UPEM / meta["upem"]
-                glyphs, horizontal, vertical = {}, {}, {}
+                glyphs, horizontal, vertical, vertical_offsets = {}, {}, {}, {}
                 max_error = 0
                 for expected, line in enumerate(stream):
                     row = json.loads(line)
@@ -73,6 +74,9 @@ def convert(output):
                     advance = otRound(row["advance"] * factor)
                     max_error = max(max_error, abs(advance / factor - row["advance"]))
                     horizontal[name] = (advance, getattr(glyph, "xMin", 0))
+                    # Native vertical centering uses the default master's width,
+                    # even when the named weight has a different horizontal advance.
+                    vertical_offsets[name] = otRound(row["verticalOrigin"][0] * factor + advance / 2)
                     # CoreText reports the translation applied to horizontal outlines.
                     origin_y = -row["verticalOrigin"][1] * factor
                     vertical[name] = (otRound(row["verticalAdvance"] * factor),
@@ -102,6 +106,11 @@ def convert(output):
                 builder.setupHorizontalMetrics(horizontal)
                 builder.setupVerticalMetrics(vertical)
                 builder.setupMaxp()
+                assert "GPOS" not in font
+                adjustments = "\n".join(f"pos {name} <{dx} 0 0 0>;"
+                                        for name, dx in vertical_offsets.items() if dx)
+                addOpenTypeFeaturesFromString(font, "languagesystem DFLT dflt;\nfeature vkrn {\n" +
+                                               adjustments + "\n} vkrn;", tables=["GPOS"])
                 font["head"].glyphDataFormat = 0
                 font["head"].macStyle = 0
                 font["OS/2"].usWeightClass = weight_number * 100

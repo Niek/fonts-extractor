@@ -45,8 +45,28 @@ for sample in reference["samples"]:
         assert abs(actual - expected) <= sample["size"] / 32000 + 0.00001, sample
     max_width_error = max(max_width_error, abs(sum(advances) - sample["nativeWidth"]))
 
+max_vertical_error = 0
+for sample in reference["verticalSamples"]:
+    buffer = hb.Buffer()
+    buffer.add_str(sample["text"])
+    buffer.direction = "ttb"
+    buffer.guess_segment_properties()
+    hb.shape(fonts[sample["name"]], buffer, {"vkrn": True})
+    assert [glyph.codepoint for glyph in buffer.glyph_infos] == sample["glyphs"], sample
+    x = y = 0
+    for pos, expected in zip(buffer.glyph_positions, sample["nativePositions"]):
+        error = max(abs((x + pos.x_offset) / 1000 - expected[0]),
+                    abs((y + pos.y_offset) / 1000 - expected[1]))
+        assert error <= 0.002, (sample, error)
+        max_vertical_error = max(max_vertical_error, error)
+        x += pos.x_advance
+        y += pos.y_advance
+
 print(json.dumps({"faces": len(fonts), "freetypeVersion": freetype.version(),
                   "freetypeGlyphsLoaded": loaded, "shapingSamples": len(reference["samples"]),
                   "maxWidthErrorPx": max_width_error,
+                  "verticalSamples": len(reference["verticalSamples"]),
+                  "verticalFeatures": {"vkrn": True},
+                  "maxVerticalPositionErrorAt16px": max_vertical_error,
                   "coreTextPixelIdenticalSamples": sum(s["changedPixels"] == 0 for s in reference["samples"]),
                   "coreTextMaxPixelDelta": max(s["maxPixelDelta"] for s in reference["samples"])}, indent=2))

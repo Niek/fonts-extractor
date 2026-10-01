@@ -9,6 +9,7 @@ let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as! [C
 precondition(descriptors.count == 24)
 var faces: [[String: Any]] = []
 var samples: [[String: Any]] = []
+var verticalSamples: [[String: Any]] = []
 for descriptor in descriptors {
     let converted = CTFontCreateWithFontDescriptor(descriptor, 1000, nil)
     precondition((CTFontCopyAttribute(converted, kCTFontURLAttribute) as! URL).standardizedFileURL == url)
@@ -19,12 +20,15 @@ for descriptor in descriptors {
     precondition(CTFontCopyName(converted, kCTFontVersionNameKey)! as String == version)
     let count = CTFontGetGlyphCount(native)
     precondition(CTFontGetGlyphCount(converted) == count)
-    var maxAdvanceError: CGFloat = 0, maxBoundsError: CGFloat = 0
+    var maxAdvanceError: CGFloat = 0, maxBoundsError: CGFloat = 0, maxVerticalError: CGFloat = 0
     for i in 0..<count {
         var glyph = CGGlyph(i), a = CGSize.zero, b = CGSize.zero
         CTFontGetAdvancesForGlyphs(native, .horizontal, &glyph, &a, 1)
         CTFontGetAdvancesForGlyphs(converted, .horizontal, &glyph, &b, 1)
         maxAdvanceError = max(maxAdvanceError, abs(a.width - b.width))
+        let va = CTFontGetAdvancesForGlyphs(native, .vertical, &glyph, nil, 1)
+        let vb = CTFontGetAdvancesForGlyphs(converted, .vertical, &glyph, nil, 1)
+        maxVerticalError = max(maxVerticalError, abs(va - vb))
         let ra = CTFontCreatePathForGlyph(native, glyph, nil)?.boundingBoxOfPath ?? .zero
         let rb = CTFontCreatePathForGlyph(converted, glyph, nil)?.boundingBoxOfPath ?? .zero
         for delta in [ra.minX-rb.minX, ra.minY-rb.minY, ra.maxX-rb.maxX, ra.maxY-rb.maxY] {
@@ -33,8 +37,10 @@ for descriptor in descriptors {
     }
     precondition(maxAdvanceError <= 0.032, "Advance mismatch: \(name) \(maxAdvanceError)")
     precondition(maxBoundsError <= 0.04, "Outline mismatch: \(name) \(maxBoundsError)")
+    precondition(maxVerticalError <= 0.032, "Vertical advance mismatch: \(name)")
     faces.append(["name": name, "version": version, "glyphs": count,
                   "maxAdvanceErrorAt16px": maxAdvanceError * 0.016,
+                  "maxVerticalAdvanceErrorAt16px": maxVerticalError * 0.016,
                   "maxBoundsErrorAt16px": maxBoundsError * 0.016])
     for size: CGFloat in [12, 16, 24, 32, 64] {
         for text in ["ABC 0123", "mmmmmmmmmmlli", "The quick brown fox 0123456789",
@@ -60,6 +66,8 @@ for descriptor in descriptors {
                 for run in CTLineGetGlyphRuns(line) as! [CTRun] {
                     let runFont = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] as! CTFont
                     precondition(CTFontCopyPostScriptName(runFont) as String == name, "Unexpected fallback")
+                    precondition(CFEqual(CTFontCopyAttribute(runFont, kCTFontURLAttribute),
+                                         CTFontCopyAttribute(font, kCTFontURLAttribute)))
                     let count = CTRunGetGlyphCount(run)
                     var g = [CGGlyph](repeating: 0, count: count), a = [CGSize](repeating: .zero, count: count)
                     CTRunGetGlyphs(run, CFRange(), &g)
@@ -85,6 +93,31 @@ for descriptor in descriptors {
                             "changedPixels": changed, "maxPixelDelta": maximum, "absolutePixelDelta": total])
         }
     }
+    for text in ["ABC一香，。體", "中文测试，香港臺灣澳門。", "（）【】《》！？"] {
+        var ids: [[Int]] = [], positions: [[[Double]]] = []
+        for font in [CTFontCreateWithName(name as CFString, 16, nil),
+                     CTFontCreateWithFontDescriptor(descriptor, 16, nil)] {
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [
+                NSAttributedString.Key(kCTFontAttributeName as String): font,
+                NSAttributedString.Key(kCTVerticalFormsAttributeName as String): true]))
+            var allGlyphs: [Int] = [], allPositions: [[Double]] = []
+            for run in CTLineGetGlyphRuns(line) as! [CTRun] {
+                let runFont = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] as! CTFont
+                precondition(CFEqual(CTFontCopyAttribute(runFont, kCTFontURLAttribute),
+                                     CTFontCopyAttribute(font, kCTFontURLAttribute)))
+                let n = CTRunGetGlyphCount(run)
+                var g = [CGGlyph](repeating: 0, count: n), p = [CGPoint](repeating: .zero, count: n)
+                CTRunGetGlyphs(run, CFRange(), &g); CTRunGetPositions(run, CFRange(), &p)
+                allGlyphs += g.map { Int($0) }; allPositions += p.map { [$0.x, $0.y] }
+            }
+            ids.append(allGlyphs); positions.append(allPositions)
+        }
+        precondition(ids[0] == ids[1], "Vertical shaping mismatch: \(name) \(text)")
+        let error = zip(positions[0].flatMap { $0 }, positions[1].flatMap { $0 }).map { abs($0 - $1) }.max()!
+        precondition(error <= 0.002, "Vertical position mismatch: \(name) \(error)")
+        verticalSamples.append(["name": name, "text": text, "glyphs": ids[0],
+                                "nativePositions": positions[0], "maxPositionErrorAt16px": error])
+    }
 }
-let report: [String: Any] = ["faces": faces, "samples": samples]
+let report: [String: Any] = ["faces": faces, "samples": samples, "verticalSamples": verticalSamples]
 print(String(data: try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys]), encoding: .utf8)!)

@@ -21,7 +21,7 @@ for i in 0..<CTFontGetGlyphCount(font) {
         var glyph = CGGlyph(i)
         var horizontal = CGSize.zero, vertical = CGSize.zero, origin = CGSize.zero
         CTFontGetAdvancesForGlyphs(font, .horizontal, &glyph, &horizontal, 1)
-        CTFontGetAdvancesForGlyphs(font, .vertical, &glyph, &vertical, 1)
+        let verticalAdvance = CTFontGetAdvancesForGlyphs(font, .vertical, &glyph, &vertical, 1)
         CTFontGetVerticalTranslationsForGlyphs(font, &glyph, &origin, 1)
         var commands: [[Double]] = []
         CTFontCreatePathForGlyph(font, glyph, nil)?.applyWithBlock { pointer in
@@ -37,7 +37,7 @@ for i in 0..<CTFontGetGlyphCount(font) {
             for j in 0..<count { command += [element.points[j].x, element.points[j].y] }
             commands.append(command)
         }
-        emit(["gid": i, "advance": horizontal.width, "verticalAdvance": vertical.height,
+        emit(["gid": i, "advance": horizontal.width, "verticalAdvance": verticalAdvance,
               "verticalOrigin": [origin.width, origin.height], "path": commands])
     }
 }
