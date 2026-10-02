@@ -3,16 +3,17 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   extract-macos:
-    runs-on: macos-26 # see: https://github.com/actions/runner-images?tab=readme-ov-file#available-images
+    runs-on: xcode-27 # macOS 27: https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md
     steps:
       - name: Extract fonts
         run: |
           mkdir fonts
           find /System/Library/Fonts -type f -exec cp {} fonts/ \;
+          # This also copies PingFangUI.ttc, but our Fontconfig cannot load its native HVF outlines.
           # find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/ -type f -exec cp {} fonts/ \; # Skip for now
           find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Fonts/ApplicationSupport/ -type f -exec cp {} fonts/ \;
           find /System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Fonts/Subsets/ -type f -exec cp {} fonts/ \;
-          # PingFang SC/TC/HK/MO: macos-26 only ships the non-portable PingFangUI.ttc.
+          # Portable PingFang 21.0d1e1: HK, MO, SC and TC, six weights each.
           # Source: https://mesu.apple.com/assets/macos/com_apple_MobileAsset_Font8/com_apple_MobileAsset_Font8.xml
           curl -fLsS --retry 3 -o PingFang.zip https://updates.cdn-apple.com/2025/mobileassets/072-04650/9FABB3FE-D4A6-4563-8CCE-20B5E692A0C9/com_apple_MobileAsset_Font8/3e99191bcfad76a1b28ab8410e037db50a26d721.zip
           echo '468483656d9f597807ec9b3927ac6ad318984620139a38c58578846958d91b85  PingFang.zip' | shasum -a 256 -c -
