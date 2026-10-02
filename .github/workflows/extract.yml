@@ -31,7 +31,7 @@ jobs:
           mkdir android
           
           # Download noto-emoji from https://github.com/googlefonts/noto-emoji
-          curl -sLo android/NotoColorEmoji.ttf https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf
+          curl -fLsS --retry 3 -o android/NotoColorEmoji.ttf https://raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/NotoColorEmoji.ttf
 
           # Download droid-sans-mono from https://github.com/googlefonts/googlefontsdirectory-old
           curl -sLo android/DroidSansMono.ttf https://github.com/googlefonts/googlefontsdirectory-old/raw/refs/heads/main/apache/droidsansmono/DroidSansMono.ttf
