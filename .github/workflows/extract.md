@@ -4,7 +4,7 @@ Extract fonts from Windows and macOS runners, download Android fonts, and publis
 
 For release tagging instructions, see the [README](../../README.md).
 
-Each workflow run uploads five artifacts containing these pairs; tag builds also attach all ten files directly to the release:
+Each workflow run uploads all ten files as separate, unzipped artifacts named after the file; tag builds also attach them directly to the release:
 
 | Bundle | Archive | Manifest |
 | --- | --- | --- |

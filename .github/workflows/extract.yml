@@ -13,13 +13,18 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: Extract fonts and generate manifest
         run: python scripts/extract_fonts.py macos
-      - name: Upload fonts and manifest
+      - name: Upload fonts-mac.zip
         uses: actions/upload-artifact@v7
         with:
-          name: fonts-mac
-          path: dist/fonts-mac.*
+          path: dist/fonts-mac.zip
+          archive: false # artifact is named after the file
           if-no-files-found: error
-          compression-level: 0
+      - name: Upload fonts-mac.json
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/fonts-mac.json
+          archive: false # artifact is named after the file
+          if-no-files-found: error
   extract-android:
     runs-on: ubuntu-latest
     steps:
@@ -34,13 +39,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/extract_fonts.py android
-      - name: Upload fonts and manifest
+      - name: Upload fonts-android.zip
         uses: actions/upload-artifact@v7
         with:
-          name: fonts-android
-          path: dist/fonts-android.*
+          path: dist/fonts-android.zip
+          archive: false # artifact is named after the file
           if-no-files-found: error
-          compression-level: 0
+      - name: Upload fonts-android.json
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/fonts-android.json
+          archive: false # artifact is named after the file
+          if-no-files-found: error
   extract-windows:
     runs-on: windows-2025 # see: https://github.com/actions/runner-images?tab=readme-ov-file#available-images
     env:
@@ -67,30 +77,48 @@ jobs:
       - name: Extract fonts and generate manifests
         if: env.EXTRACT == 'true'
         run: python scripts/extract_fonts.py windows
-      - name: Upload Windows fonts and manifest
+      - name: Upload fonts-win.zip
         if: env.EXTRACT == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: fonts-win
-          path: dist/fonts-win.*
+          path: dist/fonts-win.zip
+          archive: false # artifact is named after the file
           if-no-files-found: error
-          compression-level: 0
-      - name: Upload Office fonts and manifest
+      - name: Upload fonts-win.json
         if: env.EXTRACT == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: fonts-office
-          path: dist/fonts-office.*
+          path: dist/fonts-win.json
+          archive: false # artifact is named after the file
           if-no-files-found: error
-          compression-level: 0
-      - name: Upload Windows 11 fonts and manifest
+      - name: Upload fonts-office.zip
         if: env.EXTRACT == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: fonts-win11
-          path: dist/fonts-win11.*
+          path: dist/fonts-office.zip
+          archive: false # artifact is named after the file
           if-no-files-found: error
-          compression-level: 0
+      - name: Upload fonts-office.json
+        if: env.EXTRACT == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/fonts-office.json
+          archive: false # artifact is named after the file
+          if-no-files-found: error
+      - name: Upload fonts-win11.zip
+        if: env.EXTRACT == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/fonts-win11.zip
+          archive: false # artifact is named after the file
+          if-no-files-found: error
+      - name: Upload fonts-win11.json
+        if: env.EXTRACT == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/fonts-win11.json
+          archive: false # artifact is named after the file
+          if-no-files-found: error
   upload:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -99,8 +127,10 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
+          pattern: fonts-*
           path: dist
           merge-multiple: true
+          skip-decompress: true # keep the font ZIPs as-is instead of extracting them
       - name: Release
         uses: softprops/action-gh-release@v3
         with:
