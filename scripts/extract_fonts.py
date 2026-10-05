@@ -4,6 +4,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path, PurePosixPath
 import platform
@@ -12,7 +13,9 @@ import subprocess
 import tempfile
 import time
 from datetime import datetime, timezone
-from urllib.error import URLError
+from http.client import IncompleteRead
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -35,14 +38,29 @@ def download(url, destination, expected_sha256=None):
     for attempt in range(4):
         try:
             request = Request(url, headers={"User-Agent": "fonts-extractor"})
+            token = os.environ.get("GITHUB_TOKEN")
+            parsed_url = urlsplit(url)
+            if token and parsed_url.scheme == "https" and parsed_url.hostname == "api.github.com":
+                # urllib copies regular headers to redirects, including other hosts.
+                request.add_unredirected_header("Authorization", f"Bearer {token}")
             with urlopen(request, timeout=120) as response, destination.open("wb") as output:
                 shutil.copyfileobj(response, output)
+                content_length = response.headers.get("Content-Length")
+                if content_length is not None and output.tell() < int(content_length):
+                    # Bounded reads may return EOF without raising IncompleteRead.
+                    raise IncompleteRead(b"", int(content_length) - output.tell())
                 resolved_url = response.geturl()
             break
-        except (URLError, TimeoutError, ConnectionError):
+        except HTTPError as error:
+            if error.code not in (408, 429) and not 500 <= error.code < 600:
+                raise
             if attempt == 3:
                 raise
-            time.sleep(2 ** attempt)
+            error.close()
+        except (URLError, TimeoutError, ConnectionError, IncompleteRead):
+            if attempt == 3:
+                raise
+        time.sleep(2 ** attempt)
     digest = sha256(destination)
     if expected_sha256 and digest != expected_sha256:
         raise ValueError(f"SHA-256 mismatch for {url}: expected {expected_sha256}, got {digest}")
@@ -55,13 +73,24 @@ class Bundle:
         self.directory = staging / name
         self.directory.mkdir()
         self.sources = {}
+        self._names = {}
+
+    def _destination(self, name):
+        # Apply the same last-source-wins rule on every runner filesystem.
+        # Remove the old entry first so case-insensitive disks retain the new spelling.
+        previous = self._names.get(name.casefold())
+        if previous is not None and previous != name:
+            (self.directory / previous).unlink()
+            del self.sources[previous]
+        self._names[name.casefold()] = name
+        return self.directory / name
 
     def copy(self, path, repository=None, revision=None):
         path = path.absolute()
         source = {"type": "local", "path": str(path), "directory": str(path.parent)}
         if repository is not None:
             source.update(type="repository", repository_path=path.relative_to(repository.absolute()).as_posix(), revision=revision)
-        shutil.copyfile(path, self.directory / path.name)
+        shutil.copyfile(path, self._destination(path.name))
         # As in the original workflow, later sources replace duplicate basenames.
         self.sources[path.name] = source
 
@@ -73,7 +102,7 @@ class Bundle:
                 self.copy(path)
 
     def download_font(self, url, name):
-        self.sources[name] = download(url, self.directory / name)
+        self.sources[name] = download(url, self._destination(name))
 
     def extract_archive(self, archive, source, pattern):
         with ZipFile(archive) as zip_file:
@@ -85,7 +114,7 @@ class Bundle:
                 # Flatten paths just like unzip -j, without extracting archive paths.
                 if name in ("", ".", "..") or "\\" in name:
                     raise ValueError(f"Invalid font archive member: {member.filename}")
-                with zip_file.open(member) as stream, (self.directory / name).open("wb") as output:
+                with zip_file.open(member) as stream, self._destination(name).open("wb") as output:
                     shutil.copyfileobj(stream, output)
                 self.sources[name] = {**source, "archive_member": member.filename}
 
@@ -95,7 +124,7 @@ class Bundle:
         output.mkdir(parents=True, exist_ok=True)
         files = []
         archive_path = output / f"{self.name}.zip"
-        with ZipFile(archive_path, "w", compression=ZIP_DEFLATED, compresslevel=6) as archive:
+        with ZipFile(archive_path, "w", compression=ZIP_DEFLATED, compresslevel=9) as archive:
             for name, source in sorted(self.sources.items()):
                 path = self.directory / name
                 archive_member = f"{self.name}/{name}"
@@ -189,6 +218,7 @@ def main():
     parser.add_argument("--repo", type=Path, default=Path("repo"))
     parser.add_argument("--windows-fonts", type=Path, default=Path("C:/Windows/Fonts"))
     args = parser.parse_args()
+    logging.getLogger("fontTools").setLevel(logging.ERROR)
     with tempfile.TemporaryDirectory(prefix="fonts-extractor-") as temporary:
         staging = Path(temporary)
         if args.platform == "macos":

@@ -1,13 +1,8 @@
-# fonts-extractor
+# Font extraction and manifests
 
 Extract fonts from Windows and macOS runners, download Android fonts, and publish ZIP archives with matching JSON manifests.
 
-Tag a new version:
-
-```bash
-git tag v2.5
-git push origin v2.5
-```
+For release tagging instructions, see the [README](../../README.md).
 
 Each workflow run uploads five artifacts containing these pairs; tag builds also attach all ten files directly to the release:
 
@@ -36,7 +31,7 @@ Each face is a self-contained summary:
 - Preferred family and style, numeric weight/width classes, italic/oblique flags, PostScript name, and version.
 - Vendor ID, manufacturer/designer, copyright, vendor URL, and license URL when present. Non-ASCII vendor bytes are represented losslessly with Latin-1 plus `vendor_id_hex`.
 - Embedded creation/modification dates in UTC, glyph count, units per em, outline format, monospace/color/variable flags, and italic angle.
-- Unicode character count and distinct ISO 15924 script tags, rather than individual codepoints or ranges.
+- Unicode character count and distinct ISO 15924 script tags, rather than individual codepoints or ranges. Common (`Zyyy`), Inherited (`Zinh`), and Unknown (`Zzzz`) tags are omitted from the script list; their characters still contribute to the character count.
 - Declared design languages (`meta.dlng`, such as `zh-Hans`) and the count of distinct declared supported languages (`meta.slng`). An absent declaration is omitted, not reported as zero.
 - Distinct OpenType feature tags merged from GSUB and GPOS. Variable fonts include their axes with min/default/max values and the named-instance count.
 
@@ -46,7 +41,9 @@ Embedded dates are decoded by fontTools (including its legacy timestamp correcti
 
 Schema 2 replaces the earlier detailed schema 1: file identity, provenance, hashes, and face indexing are preserved, while face metadata now uses the summaries above.
 
-Collection preserves the original flattened filenames and source precedence: a later source replaces a duplicate basename, and the manifest identifies the source whose bytes were actually archived. A missing required source, failed download/checksum, or empty bundle fails the build.
+Collection preserves flattened filenames and source precedence: a later source replaces a duplicate basename, comparing names case-insensitively with `casefold()` on every OS. The last source's spelling, bytes, and provenance are used consistently for local copies, downloads, and archive members. A missing required source, failed download/checksum, or empty bundle fails the build.
+
+Downloads retry connection failures, incomplete bodies, HTTP 408/429, and server errors up to three times; other HTTP errors fail immediately. When `GITHUB_TOKEN` is set, only HTTPS requests to `api.github.com` receive it, and the authorization header is not forwarded on redirects. CI supplies it to the Android download step. ZIPs use DEFLATE level 9, and the CLI suppresses fontTools warning chatter while retaining metadata error summaries. Unit tests run on Ubuntu and Windows; macOS runs extraction without repeating the suite.
 
 ## Run locally
 

@@ -1,4 +1,5 @@
 name: Extract Windows, macOS, and Android fonts
+# Manifest format and local usage: .github/workflows/extract.md
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
@@ -10,8 +11,6 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements.txt
-      - name: Test extraction and manifests
-        run: python -m unittest discover -s tests -v
       - name: Extract fonts and generate manifest
         run: python scripts/extract_fonts.py macos
       - name: Upload fonts and manifest
@@ -32,6 +31,8 @@ jobs:
       - name: Test extraction and manifests
         run: python -m unittest discover -s tests -v
       - name: Download fonts and generate manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/extract_fonts.py android
       - name: Upload fonts and manifest
         uses: actions/upload-artifact@v7

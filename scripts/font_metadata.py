@@ -80,7 +80,7 @@ def face_metadata(font, index):
         codepoints = set().union(*(t.cmap.keys() for t in table.tables if t.isUnicode()))
         result["unicode"] = {
             "codepoint_count": len(codepoints),
-            "scripts": sorted({unicodedata.script(cp) for cp in codepoints}),
+            "scripts": sorted({unicodedata.script(cp) for cp in codepoints} - {"Zyyy", "Zinh", "Zzzz"}),
         }
 
     read("cmap", cmap)

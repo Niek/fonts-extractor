@@ -236,6 +236,8 @@ class ExtractionTests(unittest.TestCase):
 
     def test_download_tracks_redirects_and_validates_checksum(self):
         class Response(io.BytesIO):
+            headers = {}
+
             def geturl(self):
                 return "https://cdn.example.test/font.ttf"
         data = self.font.read_bytes()
