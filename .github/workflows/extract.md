@@ -22,7 +22,8 @@ Each schema-version-2 manifest includes the archive's size and SHA-256, generati
 
 - `path`: exact path inside the ZIP, also its local path after extraction (for example, `fonts-mac/PingFang.ttc`). `relative_path` omits the bundle directory.
 - `source`: `local`, `repository`, or `web`. Local files record their original absolute path and exact parent directory. Repository files additionally record the path within the supplementary repository and its checked-out commit. Downloads record the requested URL, final redirected URL, and download SHA-256. Fonts extracted from downloads also record the original `archive_member`; the download hash identifies the source ZIP, while the file's `sha256` identifies the extracted font. Roboto includes its resolved release tag.
-- `size_bytes` and `sha256`: measured from the unchanged font bytes included in the ZIP.
+- Base64 downloads record `source.encoding: "base64"`; their `download_sha256` identifies the encoded response, while the file's `sha256` identifies its decoded bytes.
+- `size_bytes` and `sha256`: measured from the file bytes included in the ZIP, including retained license/provenance text files.
 - `is_collection`, `face_count`, and `faces`: TTC/OTC and macOS `.dfont` files contain one metadata object per face, with its zero-based `index`. The `container_format` distinguishes resource containers, SFNT collections, and standalone fonts; `.dfont` faces also include resource IDs and names. A standalone font has one face at index 0. File sizes and hashes apply to the complete file, not individual collection faces.
 - `metadata_status` and `metadata_errors`: unsupported files and damaged tables remain in the ZIP and manifest with explicit errors. A face/file can be `complete`, `partial`, or `unreadable`; completeness refers to the summary fields, not validation of every font table. Empty face-level errors and absent optional values are omitted.
 

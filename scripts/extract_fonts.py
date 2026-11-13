@@ -1,6 +1,7 @@
 """Collect fonts with provenance and create matching ZIP/JSON release assets."""
 
 import argparse
+import base64
 import fnmatch
 import hashlib
 import json
@@ -27,6 +28,26 @@ from font_metadata import inspect_font
 PINGFANG_URL = "https://updates.cdn-apple.com/2025/mobileassets/072-04650/9FABB3FE-D4A6-4563-8CCE-20B5E692A0C9/com_apple_MobileAsset_Font8/3e99191bcfad76a1b28ab8410e037db50a26d721.zip"
 PINGFANG_SHA256 = "468483656d9f597807ec9b3927ac6ad318984620139a38c58578846958d91b85"
 ROBOTO_RELEASE = "https://api.github.com/repos/googlefonts/roboto-3-classic/releases/latest"
+# Native Android 15 fonts: Noto Serif 1.070, Cutive Mono 1.100 and Dancing Script
+# 2.001 (variable weight). Pin AOSP commits and decoded bytes, including licenses.
+AOSP_ROOT = "https://android.googlesource.com/platform/external/"
+NOTO_SERIF = "noto-fonts/+/1763da7de494446263d6e6b7b9e9328eac8ecdd8/notoserif"
+CUTIVE_MONO = "google-fonts/cutive-mono/+/58c78bf2783ff6ef3f96e1766342ebbe2082fccc"
+DANCING_SCRIPT = "google-fonts/dancing-script/+/56837af7b437e2fae6e607e54ff51e6324ff52c7"
+ANDROID_AOSP_ASSETS = (
+    (f"{NOTO_SERIF}/NotoSerif-Regular.ttf", "NotoSerif-Regular.ttf", "1e65d9bbb6864fd4a32b96a8f0de3739b667c9eac793ec2d6d00bab7adb5a965"),
+    (f"{NOTO_SERIF}/NotoSerif-Bold.ttf", "NotoSerif-Bold.ttf", "d245c6187216b7e2f943431525beb29a22c2141dd1c9e4a9de14f3899e6ab699"),
+    (f"{NOTO_SERIF}/NotoSerif-Italic.ttf", "NotoSerif-Italic.ttf", "bb2ad30a8b95b367ed9576cea42bc085b7e69a6f81e6fe53ac3db6f10c7ff5f3"),
+    (f"{NOTO_SERIF}/NotoSerif-BoldItalic.ttf", "NotoSerif-BoldItalic.ttf", "e9421c1ca461ff0e5c9c3149e05a9880f92378def342dd09a567ee104330eef5"),
+    (f"{NOTO_SERIF}/NOTICE", "NotoSerif.LICENSE.txt", "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6"),
+    (f"{NOTO_SERIF}/METADATA", "NotoSerif.METADATA.txt", "acd1c32ff382cba9c92c1b4ae816285f973feddeffa5b52f96d44129d41ec6b4"),
+    (f"{CUTIVE_MONO}/CutiveMono.ttf", "CutiveMono.ttf", "543c74f6185531aebf6151fba7c618f5aeb43af8cb6b09d70e97e3611b351e6e"),
+    (f"{CUTIVE_MONO}/LICENSE", "CutiveMono.LICENSE.txt", "2485274ba5dce512aa9ebe76ce001e60b74d872b9fc7f28a122a0d3f899e9883"),
+    (f"{CUTIVE_MONO}/METADATA", "CutiveMono.METADATA.txt", "451b83559bfe563eb8d76eb5a1c553846a7679003a0343280d60e961e3a62307"),
+    (f"{DANCING_SCRIPT}/DancingScript-Regular.ttf", "DancingScript-Regular.ttf", "21808625578fe8d8cd10cb684be546dca077b27cd03a53a2f1ec11dc743c924c"),
+    (f"{DANCING_SCRIPT}/LICENSE", "DancingScript.LICENSE.txt", "be9957e2c2f64df5326110d37f88966a8b608d2c2bc69e9e23e2a4ae9e15e2ce"),
+    (f"{DANCING_SCRIPT}/METADATA", "DancingScript.METADATA.txt", "2a3511171bb325993e038386a1459e5a54a99d6c45f495574adaf7f3cd9a86ff"),
+)
 
 
 def sha256(path):
@@ -103,6 +124,15 @@ class Bundle:
 
     def download_font(self, url, name):
         self.sources[name] = download(url, self._destination(name))
+
+    def download_base64(self, url, name, expected_sha256):
+        destination = self._destination(name)
+        source = download(url, destination)
+        destination.write_bytes(base64.b64decode(b"".join(destination.read_bytes().split()), validate=True))
+        digest = sha256(destination)
+        if digest != expected_sha256:
+            raise ValueError(f"SHA-256 mismatch for {url}: expected {expected_sha256}, got {digest}")
+        self.sources[name] = {**source, "encoding": "base64"}
 
     def extract_archive(self, archive, source, pattern):
         with ZipFile(archive) as zip_file:
@@ -181,6 +211,8 @@ def collect_android(staging):
     source = download(assets[0]["browser_download_url"], archive)
     source.update(release_api_url=ROBOTO_RELEASE, release_tag=release["tag_name"])
     bundle.extract_archive(archive, source, "android/static/*")
+    for source_path, name, digest in ANDROID_AOSP_ASSETS:
+        bundle.download_base64(f"{AOSP_ROOT}{source_path}?format=TEXT", name, digest)
     return [bundle]
 
 
